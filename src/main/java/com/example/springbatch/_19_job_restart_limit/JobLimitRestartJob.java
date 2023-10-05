@@ -1,7 +1,6 @@
-package com.example.springbatch._18_job_restart_forbid;
+package com.example.springbatch._19_job_restart_limit;
 
-import com.example.springbatch._17_job_stop_sign.ResourceCount;
-import com.example.springbatch._17_job_stop_sign.SignJobStopJob;
+import com.example.springbatch._18_job_restart_forbid.JobForBidRestartJob;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepContribution;
@@ -15,9 +14,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+
 @SpringBootApplication
 @EnableBatchProcessing
-public class JobForBidRestartJob {
+public class JobLimitRestartJob {
 
     @Autowired
     private JobBuilderFactory jobBuilderFactory;
@@ -32,7 +32,7 @@ public class JobForBidRestartJob {
             public RepeatStatus execute(StepContribution stepContribution, ChunkContext chunkContext) throws Exception {
                 System.out.println("---------tasklet1----------");
 
-                    chunkContext.getStepContext().getStepExecution().setTerminateOnly();
+                chunkContext.getStepContext().getStepExecution().setTerminateOnly();
 
                 return RepeatStatus.FINISHED; //會一直跑下去
             }
@@ -58,6 +58,7 @@ public class JobForBidRestartJob {
     public Step step1(){
 
         return stepBuilderFactory.get("step1")
+                .startLimit(2) //執行限制 只能重啟1次，springBatch 第一次啟動就開始統計
                 .tasklet(tasklet1())
                 .build();
     }
@@ -74,15 +75,13 @@ public class JobForBidRestartJob {
     @Bean
     public Job job(){
 
-        return jobBuilderFactory.get("sign-forbid-stop-job1")
-                .preventRestart() //禁止重啟
+        return jobBuilderFactory.get("sign-restart-limit-job")
                 .start(step1())
                 .next(step2())
                 .build();
     }
 
     public static void main(String[] args) {
-
-
+        SpringApplication.run(JobLimitRestartJob.class,args);
     }
 }
